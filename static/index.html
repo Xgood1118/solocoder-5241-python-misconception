@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>错题分析系统</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; background: #f5f7fa; color: #333; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 200px; background: #2c3e50; color: white; padding: 20px 0; }
+.sidebar h1 { font-size: 18px; padding: 0 20px 20px; border-bottom: 1px solid #34495e; margin-bottom: 10px; }
+.nav-item { padding: 12px 20px; cursor: pointer; transition: background 0.2s; font-size: 14px; }
+.nav-item:hover { background: #34495e; }
+.nav-item.active { background: #3498db; border-left: 3px solid #2980b9; }
+.main { margin-left: 200px; padding: 20px; }
+.page { display: none; }
+.page.active { display: block; }
+.card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card h2 { font-size: 18px; margin-bottom: 15px; color: #2c3e50; border-left: 4px solid #3498db; padding-left: 10px; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 5px; font-weight: 500; }
+.form-group label .required { color: #e74c3c; }
+input[type="text"], input[type="number"], select, textarea {
+    width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 5px;
+    font-size: 14px; font-family: inherit; transition: border 0.2s;
+}
+input:focus, select:focus, textarea:focus { outline: none; border-color: #3498db; }
+textarea { resize: vertical; min-height: 80px; }
+.btn {
+    padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;
+    font-size: 13px; transition: background 0.2s; font-family: inherit;
+}
+.btn-primary { background: #3498db; color: white; }
+.btn-primary:hover { background: #2980b9; }
+.btn-success { background: #27ae60; color: white; }
+.btn-success:hover { background: #229954; }
+.btn-danger { background: #e74c3c; color: white; }
+.btn-danger:hover { background: #c0392b; }
+.btn-secondary { background: #95a5a6; color: white; }
+.btn-secondary:hover { background: #7f8c8d; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+.mistake-types { display: flex; gap: 10px; flex-wrap: wrap; }
+.mistake-type-btn {
+    flex: 1; min-width: 100px; padding: 12px; border: 2px solid #ddd;
+    border-radius: 8px; cursor: pointer; text-align: center; font-size: 13px;
+    transition: all 0.2s; background: white;
+}
+.mistake-type-btn:hover { border-color: #3498db; }
+.mistake-type-btn.active { border-color: #3498db; background: #e8f4fd; color: #2980b9; font-weight: bold; }
+.kp-selector { display: flex; flex-wrap: wrap; gap: 8px; max-height: 150px; overflow-y: auto; padding: 10px; border: 1px solid #eee; border-radius: 5px; }
+.kp-tag {
+    padding: 4px 10px; border-radius: 15px; background: #ecf0f1; cursor: pointer;
+    font-size: 12px; transition: all 0.2s; user-select: none;
+}
+.kp-tag:hover { background: #d5dbdb; }
+.kp-tag.selected { background: #3498db; color: white; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+th { background: #f8f9fc; font-weight: 600; color: #555; }
+tr:hover { background: #f8f9fc; }
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px; }
+.stat-card { background: #f8f9fc; padding: 15px; border-radius: 8px; text-align: center; }
+.stat-card .num { font-size: 28px; font-weight: bold; color: #3498db; }
+.stat-card .label { font-size: 13px; color: #666; margin-top: 5px; }
+.type-bar { display: flex; align-items: center; margin-bottom: 10px; }
+.type-label { width: 80px; font-size: 13px; flex-shrink: 0; }
+.type-bar-wrap { flex: 1; height: 24px; background: #eee; border-radius: 12px; overflow: hidden; margin: 0 10px; }
+.type-bar-fill { height: 100%; border-radius: 12px; transition: width 0.3s; }
+.type-count { width: 100px; font-size: 12px; color: #666; text-align: right; flex-shrink: 0; }
+.type-compute { background: #3498db; }
+.type-concept { background: #e74c3c; }
+.type-review { background: #f39c12; }
+.type-cant { background: #9b59b6; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; color: white; font-size: 11px; margin-right: 4px; }
+.filter-bar { display: flex; gap: 15px; flex-wrap: wrap; align-items: end; margin-bottom: 15px; padding: 15px; background: #f8f9fc; border-radius: 8px; }
+.filter-bar .form-group { margin-bottom: 0; flex: 1; min-width: 150px; }
+.mistake-card { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
+.mistake-header { display: flex; justify-content: space-between; margin-bottom: 10px; align-items: center; }
+.question-text { background: #f8f9fc; padding: 10px; border-radius: 6px; font-size: 13px; line-height: 1.6; margin-bottom: 10px; white-space: pre-wrap; }
+.mistake-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: #666; }
+.rank { background: #e74c3c; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+.wrong-count { color: #e74c3c; font-weight: bold; }
+.kp-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.kp-chip { background: #e8f4fd; color: #2980b9; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+.student-book { border: 1px solid #eee; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+.student-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.student-header h3 { font-size: 15px; }
+.weak-section { background: #fff5f5; border-left: 3px solid #e74c3c; padding: 10px 15px; margin-bottom: 12px; border-radius: 0 6px 6px 0; }
+.weak-section h4 { font-size: 13px; color: #c0392b; margin-bottom: 5px; }
+.weak-section ul { list-style: none; padding-left: 0; }
+.weak-section li { font-size: 12px; padding: 2px 0; color: #666; }
+.kp-detail { margin-bottom: 10px; padding: 10px; background: #f8f9fc; border-radius: 6px; }
+.kp-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 5px; font-size: 13px; }
+.kp-count { color: #3498db; font-weight: bold; }
+.question-list { list-style: none; padding-left: 15px; }
+.question-list li { font-size: 12px; padding: 3px 0; color: #555; }
+.q-type { display: inline-block; padding: 0 6px; border-radius: 3px; color: white; font-size: 10px; margin-right: 6px; }
+.q-detail { color: #999; font-style: italic; }
+.tabs { display: flex; gap: 2px; border-bottom: 2px solid #eee; margin-bottom: 15px; }
+.tab { padding: 10px 20px; cursor: pointer; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+.tab:hover { color: #3498db; }
+.tab.active { color: #3498db; border-bottom-color: #3498db; font-weight: bold; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.alert { padding: 10px 15px; border-radius: 5px; margin-bottom: 15px; font-size: 13px; }
+.alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+.alert-success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+.modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; }
+.modal.show { display: flex; }
+.modal-content { background: white; border-radius: 8px; padding: 25px; width: 400px; max-width: 90%; }
+.modal-content h3 { margin-bottom: 15px; }
+.empty { text-align: center; color: #999; padding: 30px; font-size: 14px; }
+.toast { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 5px; color: white; z-index: 2000; opacity: 0; transition: opacity 0.3s; }
+.toast.show { opacity: 1; }
+.toast.success { background: #27ae60; }
+.toast.error { background: #e74c3c; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+    <h1>📚 错题分析系统</h1>
+    <div class="nav-item active" data-page="input">📝 错题录入</div>
+    <div class="nav-item" data-page="students">👥 学生管理</div>
+    <div class="nav-item" data-page="knowledge">🏷️ 知识点管理</div>
+    <div class="nav-item" data-page="analysis">📊 分析统计</div>
+    <div class="nav-item" data-page="export">📄 导出报告</div>
+</div>
+
+<div class="main">
+
+<div class="page active" id="page-input">
+    <div class="card">
+        <h2>录入错题</h2>
+        <div id="input-alert"></div>
+
+        <div class="form-group">
+            <label>考试名称 <span class="required">*</span></label>
+            <input type="text" id="input-exam" placeholder="例如：期中考试、单元测验">
+        </div>
+
+        <div class="form-group">
+            <label>学生 <span class="required">*</span></label>
+            <select id="input-student">
+                <option value="">请选择学生</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>题目原文 <span class="required">*</span></label>
+            <textarea id="input-question" placeholder="粘贴题目原文..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>错因类型 <span class="required">*</span></label>
+            <div class="mistake-types" id="mistake-type-btns">
+                <div class="mistake-type-btn" data-type="计算错误">计算错误</div>
+                <div class="mistake-type-btn" data-type="概念不清">概念不清</div>
+                <div class="mistake-type-btn" data-type="审题错误">审题错误</div>
+                <div class="mistake-type-btn" data-type="不会做">不会做</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>具体说明</label>
+            <input type="text" id="input-detail" placeholder="例如：混淆了加速度和速度、没看到单位换算">
+        </div>
+
+        <div class="form-group">
+            <label>知识点标签 <span style="color:#999;font-size:12px;">（可多选）</span></label>
+            <div class="kp-selector" id="kp-selector">
+                <span style="color:#999;">加载中...</span>
+            </div>
+            <div style="margin-top:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="addQuickKP()">+ 快速添加知识点</button>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="submitMistake()">保存错题</button>
+            <button class="btn btn-secondary" onclick="resetForm()">重置</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>最近录入</h2>
+        <div id="recent-mistakes">
+            <div class="empty">暂无数据</div>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="page-students">
+    <div class="card">
+        <h2>学生管理</h2>
+        <div class="btn-group" style="margin-bottom:15px;">
+            <button class="btn btn-primary" onclick="openStudentModal()">+ 添加学生</button>
+        </div>
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>班级筛选</label>
+                <select id="student-class-filter" onchange="loadStudents()">
+                    <option value="">全部班级</option>
+                </select>
+            </div>
+        </div>
+        <table id="students-table">
+            <thead>
+                <tr><th>学号</th><th>姓名</th><th>班级</th><th>操作</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="page" id="page-knowledge">
+    <div class="card">
+        <h2>知识点管理</h2>
+        <div class="btn-group" style="margin-bottom:15px;">
+            <button class="btn btn-primary" onclick="openKPModal()">+ 添加知识点</button>
+        </div>
+        <table id="kp-table">
+            <thead>
+                <tr><th>名称</th><th>描述</th><th>操作</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="page" id="page-analysis">
+    <div class="card">
+        <h2>分析统计</h2>
+        <div class="tabs" id="analysis-tabs">
+            <div class="tab active" data-tab="overview">班级概览</div>
+            <div class="tab" data-tab="common">共性错题</div>
+            <div class="tab" data-tab="personal">个人错题</div>
+            <div class="tab" data-tab="highfreq">高频错题</div>
+        </div>
+
+        <div class="filter-bar">
+            <div class="form-group">
+                <label>班级</label>
+                <select id="analysis-class" onchange="reloadAnalysis()">
+                    <option value="">全部班级</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>考试</label>
+                <select id="analysis-exam" onchange="reloadAnalysis()">
+                    <option value="">全部考试</option>
+                </select>
+            </div>
+            <div class="form-group" id="threshold-group">
+                <label>共性阈值 <span id="threshold-val">50%</span></label>
+                <input type="range" id="analysis-threshold" min="10" max="90" value="50" oninput="updateThreshold()">
+            </div>
+        </div>
+
+        <div class="tab-content active" id="tab-overview">
+            <div class="stats-grid" id="overview-stats"></div>
+            <h3 style="font-size:15px;margin:15px 0 10px;">错因分布</h3>
+            <div id="overview-types"></div>
+            <h3 style="font-size:15px;margin:20px 0 10px;">Top 知识点</h3>
+            <table id="overview-kp-table">
+                <thead><tr><th>排名</th><th>知识点</th><th>错题数</th><th>涉及学生</th><th>错因分布</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="tab-content" id="tab-common">
+            <div id="common-mistakes-list"></div>
+        </div>
+
+        <div class="tab-content" id="tab-personal">
+            <div class="form-group" style="margin-bottom:15px;">
+                <label>选择学生查看错题本</label>
+                <select id="personal-student" onchange="loadPersonalMistakes()">
+                    <option value="">请选择学生</option>
+                </select>
+            </div>
+            <div id="personal-book"></div>
+            <h3 style="font-size:15px;margin:20px 0 10px;">班级薄弱学生一览</h3>
+            <div id="weak-students-list"></div>
+        </div>
+
+        <div class="tab-content" id="tab-highfreq">
+            <div id="highfreq-list"></div>
+        </div>
+    </div>
+</div>
+
+<div class="page" id="page-export">
+    <div class="card">
+        <h2>导出分析报告</h2>
+        <p style="color:#666;margin-bottom:15px;font-size:13px;">
+            报告包含班级整体情况、各知识点错题分布、共性错题清单、个人错题本，导出为 HTML 文件，可直接用浏览器打开。
+        </p>
+
+        <div class="form-group">
+            <label>班级</label>
+            <select id="export-class">
+                <option value="">全部班级</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>考试</label>
+            <select id="export-exam">
+                <option value="">全部考试</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>共性错题阈值 <span id="export-threshold-val">50%</span></label>
+            <input type="range" id="export-threshold" min="10" max="90" value="50" oninput="document.getElementById('export-threshold-val').textContent = this.value + '%'">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-success" onclick="previewReport()">👁 预览报告</button>
+            <button class="btn btn-primary" onclick="downloadReport()">⬇ 下载 HTML</button>
+        </div>
+    </div>
+</div>
+
+</div>
+
+<div class="modal" id="student-modal">
+    <div class="modal-content">
+        <h3 id="student-modal-title">添加学生</h3>
+        <div class="form-group">
+            <label>学号 <span class="required">*</span></label>
+            <input type="text" id="modal-student-id" placeholder="例如：2024001">
+        </div>
+        <div class="form-group">
+            <label>姓名 <span class="required">*</span></label>
+            <input type="text" id="modal-student-name" placeholder="例如：张三">
+        </div>
+        <div class="form-group">
+            <label>班级 <span class="required">*</span></label>
+            <input type="text" id="modal-student-class" placeholder="例如：高一(1)班">
+        </div>
+        <div class="btn-group" style="justify-content:flex-end;">
+            <button class="btn btn-secondary" onclick="closeStudentModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveStudent()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="kp-modal">
+    <div class="modal-content">
+        <h3 id="kp-modal-title">添加知识点</h3>
+        <div class="form-group">
+            <label>名称 <span class="required">*</span></label>
+            <input type="text" id="modal-kp-name" placeholder="例如：牛顿第二定律">
+        </div>
+        <div class="form-group">
+            <label>描述</label>
+            <input type="text" id="modal-kp-desc" placeholder="可选">
+        </div>
+        <div class="btn-group" style="justify-content:flex-end;">
+            <button class="btn btn-secondary" onclick="closeKPModal()">取消</button>
+            <button class="btn btn-primary" onclick="saveKP()">保存</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api';
+let selectedMistakeType = '';
+let selectedKPs = [];
+let editingStudentId = null;
+let editingKPId = null;
+
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-' + item.dataset.page).classList.add('active');
+        if (item.dataset.page === 'analysis') loadAnalysisPage();
+        if (item.dataset.page === 'students') loadStudents();
+        if (item.dataset.page === 'knowledge') loadKnowledgePoints();
+        if (item.dataset.page === 'export') loadExportFilters();
+    });
+});
+
+document.querySelectorAll('#mistake-type-btns .mistake-type-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('#mistake-type-btns .mistake-type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        selectedMistakeType = btn.dataset.type;
+    });
+});
+
+document.querySelectorAll('#analysis-tabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('#analysis-tabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+        if (tab.dataset.tab === 'common') loadCommonMistakes();
+        if (tab.dataset.tab === 'personal') loadPersonalTab();
+        if (tab.dataset.tab === 'highfreq') loadHighFreqMistakes();
+    });
+});
+
+function showToast(msg, type = 'success') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function apiGet(path) {
+    const res = await fetch(API + path);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+}
+
+async function apiPost(path, data) {
+    const res = await fetch(API + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: '请求失败' }));
+        throw new Error(err.detail || '请求失败');
+    }
+    return res.json();
+}
+
+async function apiDelete(path) {
+    const res = await fetch(API + path, { method: 'DELETE' });
+    if (!res.ok) throw new Error('删除失败');
+    return res.json();
+}
+
+async function loadStudentSelects() {
+    try {
+        const students = await apiGet('/students');
+        const sel = document.getElementById('input-student');
+        sel.innerHTML = '<option value="">请选择学生</option>';
+        students.sort((a, b) => a.class_name.localeCompare(b.class_name) || a.id.localeCompare(b.id));
+        students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.class_name} - ${s.name} (${s.id})`;
+            sel.appendChild(opt);
+        });
+
+        const sel2 = document.getElementById('personal-student');
+        sel2.innerHTML = '<option value="">请选择学生</option>';
+        students.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.id;
+            opt.textContent = `${s.class_name} - ${s.name} (${s.id})`;
+            sel2.appendChild(opt);
+        });
+
+        const classRes = await apiGet('/students/classes/list');
+        const classes = classRes.classes;
+        ['student-class-filter', 'analysis-class', 'export-class'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const cv = el.value;
+                el.innerHTML = '<option value="">全部班级</option>';
+                classes.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.textContent = c;
+                    el.appendChild(opt);
+                });
+                el.value = cv;
+            }
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadKPSelector() {
+    try {
+        const kps = await apiGet('/knowledge');
+        const container = document.getElementById('kp-selector');
+        if (kps.length === 0) {
+            container.innerHTML = '<span style="color:#999;">暂无知识点，请先添加</span>';
+            return;
+        }
+        container.innerHTML = '';
+        kps.forEach(kp => {
+            const tag = document.createElement('div');
+            tag.className = 'kp-tag';
+            tag.textContent = kp.name;
+            tag.dataset.id = kp.id;
+            if (selectedKPs.includes(kp.id)) tag.classList.add('selected');
+            tag.addEventListener('click', () => {
+                if (selectedKPs.includes(kp.id)) {
+                    selectedKPs = selectedKPs.filter(id => id !== kp.id);
+                    tag.classList.remove('selected');
+                } else {
+                    selectedKPs.push(kp.id);
+                    tag.classList.add('selected');
+                }
+            });
+            container.appendChild(tag);
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function loadExamSelects() {
+    try {
+        const res = await apiGet('/mistakes/exams/list');
+        const exams = res.exams;
+        ['analysis-exam', 'export-exam'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                const cv = el.value;
+                el.innerHTML = '<option value="">全部考试</option>';
+                exams.forEach(e => {
+                    const opt = document.createElement('option');
+                    opt.value = e;
+                    opt.textContent = e;
+                    el.appendChild(opt);
+                });
+                el.value = cv;
+            }
+        });
+    } catch (e) { console.error(e); }
+}
+
+async function submitMistake() {
+    const exam = document.getElementById('input-exam').value.trim();
+    const studentId = document.getElementById('input-student').value;
+    const question = document.getElementById('input-question').value.trim();
+    const detail = document.getElementById('input-detail').value.trim();
+
+    if (!exam) return showToast('请填写考试名称', 'error');
+    if (!studentId) return showToast('请选择学生', 'error');
+    if (!question) return showToast('请输入题目原文', 'error');
+    if (!selectedMistakeType) return showToast('请选择错因类型', 'error');
+
+    try {
+        const dup = await apiGet(`/mistakes/check-duplicate?student_id=${studentId}&question_text=${encodeURIComponent(question)}&exam_name=${encodeURIComponent(exam)}`);
+        if (dup.is_duplicate) {
+            if (!confirm('该学生此题已录入过，确定要重复录入吗？')) return;
+        }
+    } catch (e) { }
+
+    const data = {
+        student_id: studentId,
+        question_text: question,
+        mistake_type: selectedMistakeType,
+        mistake_detail: detail,
+        knowledge_point_ids: selectedKPs,
+        exam_name: exam
+    };
+
+    try {
+        await apiPost('/mistakes', data);
+        showToast('录入成功！');
+
+        if (selectedKPs.length === 0) {
+            document.getElementById('input-alert').innerHTML =
+                '<div class="alert alert-warning">⚠️ 这道题还没有挂知识点标签，建议补充一下，否则分析数据会不完整哦</div>';
+        } else {
+            document.getElementById('input-alert').innerHTML = '';
+        }
+
+        document.getElementById('input-question').value = '';
+        document.getElementById('input-detail').value = '';
+        selectedMistakeType = '';
+        selectedKPs = [];
+        document.querySelectorAll('#mistake-type-btns .mistake-type-btn').forEach(b => b.classList.remove('active'));
+        loadKPSelector();
+        loadRecentMistakes();
+        loadExamSelects();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+function resetForm() {
+    document.getElementById('input-exam').value = '';
+    document.getElementById('input-student').value = '';
+    document.getElementById('input-question').value = '';
+    document.getElementById('input-detail').value = '';
+    selectedMistakeType = '';
+    selectedKPs = [];
+    document.querySelectorAll('#mistake-type-btns .mistake-type-btn').forEach(b => b.classList.remove('active'));
+    loadKPSelector();
+    document.getElementById('input-alert').innerHTML = '';
+}
+
+async function addQuickKP() {
+    const name = prompt('请输入知识点名称：');
+    if (!name) return;
+    try {
+        const kp = await apiPost('/knowledge', { name, description: '' });
+        selectedKPs.push(kp.id);
+        loadKPSelector();
+        showToast('知识点已添加');
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function loadRecentMistakes() {
+    try {
+        const mistakes = await apiGet('/mistakes?limit=10');
+        const students = await apiGet('/students');
+        const kps = await apiGet('/knowledge');
+        const stuMap = {};
+        students.forEach(s => stuMap[s.id] = s);
+        const kpMap = {};
+        kps.forEach(k => kpMap[k.id] = k);
+
+        const container = document.getElementById('recent-mistakes');
+        if (mistakes.length === 0) {
+            container.innerHTML = '<div class="empty">暂无数据</div>';
+            return;
+        }
+
+        const recent = mistakes.slice(-10).reverse();
+        let html = '';
+        recent.forEach(m => {
+            const s = stuMap[m.student_id] || { name: '未知', class_name: '' };
+            const kpNames = m.knowledge_point_ids.map(id => kpMap[id]?.name || id).filter(Boolean);
+            const kpHtml = kpNames.map(n => `<span class="kp-chip">${n}</span>`).join('');
+            html += `
+            <div class="mistake-card">
+                <div class="mistake-header">
+                    <span style="font-size:13px;font-weight:bold;">${s.name} (${s.class_name})</span>
+                    <span class="badge" style="background:${getTypeColor(m.mistake_type)}">${m.mistake_type}</span>
+                </div>
+                <div class="question-text">${m.question_text.substring(0, 100)}${m.question_text.length > 100 ? '...' : ''}</div>
+                <div class="mistake-meta">
+                    <div class="kp-tags">${kpHtml}</div>
+                    <div>${m.exam_name || ''} | ${new Date(m.created_at).toLocaleString()}</div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) { console.error(e); }
+}
+
+function getTypeColor(type) {
+    const colors = { '计算错误': '#3498db', '概念不清': '#e74c3c', '审题错误': '#f39c12', '不会做': '#9b59b6' };
+    return colors[type] || '#999';
+}
+
+async function loadStudents() {
+    const classFilter = document.getElementById('student-class-filter')?.value || '';
+    try {
+        let url = '/students';
+        if (classFilter) url += `?class_name=${encodeURIComponent(classFilter)}`;
+        const students = await apiGet(url);
+        const tbody = document.querySelector('#students-table tbody');
+        if (students.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="empty">暂无学生</td></tr>';
+            return;
+        }
+        tbody.innerHTML = students.map(s => `
+            <tr>
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.class_name}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="editStudent('${s.id}')">编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteStudent('${s.id}')">删除</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) { console.error(e); }
+}
+
+function openStudentModal() {
+    editingStudentId = null;
+    document.getElementById('student-modal-title').textContent = '添加学生';
+    document.getElementById('modal-student-id').value = '';
+    document.getElementById('modal-student-id').disabled = false;
+    document.getElementById('modal-student-name').value = '';
+    document.getElementById('modal-student-class').value = '';
+    document.getElementById('student-modal').classList.add('show');
+}
+
+async function editStudent(id) {
+    try {
+        const s = await apiGet('/students/' + id);
+        editingStudentId = id;
+        document.getElementById('student-modal-title').textContent = '编辑学生';
+        document.getElementById('modal-student-id').value = s.id;
+        document.getElementById('modal-student-id').disabled = true;
+        document.getElementById('modal-student-name').value = s.name;
+        document.getElementById('modal-student-class').value = s.class_name;
+        document.getElementById('student-modal').classList.add('show');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function closeStudentModal() {
+    document.getElementById('student-modal').classList.remove('show');
+}
+
+async function saveStudent() {
+    const id = document.getElementById('modal-student-id').value.trim();
+    const name = document.getElementById('modal-student-name').value.trim();
+    const cls = document.getElementById('modal-student-class').value.trim();
+    if (!id || !name || !cls) return showToast('请填写完整信息', 'error');
+
+    try {
+        if (editingStudentId) {
+            await apiPost('/students/' + editingStudentId, {});
+            await fetch(API + '/students/' + editingStudentId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id, name, class_name: cls })
+            });
+        } else {
+            await apiPost('/students', { id, name, class_name: cls });
+        }
+        showToast('保存成功');
+        closeStudentModal();
+        loadStudents();
+        loadStudentSelects();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function deleteStudent(id) {
+    if (!confirm('确定要删除这个学生吗？')) return;
+    try {
+        await apiDelete('/students/' + id);
+        showToast('删除成功');
+        loadStudents();
+        loadStudentSelects();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function loadKnowledgePoints() {
+    try {
+        const kps = await apiGet('/knowledge');
+        const tbody = document.querySelector('#kp-table tbody');
+        if (kps.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="empty">暂无知识点</td></tr>';
+            return;
+        }
+        tbody.innerHTML = kps.map(k => `
+            <tr>
+                <td>${k.name}</td>
+                <td>${k.description || '-'}</td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="editKP('${k.id}')">编辑</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteKP('${k.id}')">删除</button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (e) { console.error(e); }
+}
+
+function openKPModal() {
+    editingKPId = null;
+    document.getElementById('kp-modal-title').textContent = '添加知识点';
+    document.getElementById('modal-kp-name').value = '';
+    document.getElementById('modal-kp-desc').value = '';
+    document.getElementById('kp-modal').classList.add('show');
+}
+
+async function editKP(id) {
+    try {
+        const k = await apiGet('/knowledge/' + id);
+        editingKPId = id;
+        document.getElementById('kp-modal-title').textContent = '编辑知识点';
+        document.getElementById('modal-kp-name').value = k.name;
+        document.getElementById('modal-kp-desc').value = k.description || '';
+        document.getElementById('kp-modal').classList.add('show');
+    } catch (e) { showToast(e.message, 'error'); }
+}
+
+function closeKPModal() {
+    document.getElementById('kp-modal').classList.remove('show');
+}
+
+async function saveKP() {
+    const name = document.getElementById('modal-kp-name').value.trim();
+    const desc = document.getElementById('modal-kp-desc').value.trim();
+    if (!name) return showToast('请填写名称', 'error');
+
+    try {
+        if (editingKPId) {
+            await fetch(API + '/knowledge/' + editingKPId, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description: desc })
+            });
+        } else {
+            await apiPost('/knowledge', { name, description: desc });
+        }
+        showToast('保存成功');
+        closeKPModal();
+        loadKnowledgePoints();
+        loadKPSelector();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+async function deleteKP(id) {
+    if (!confirm('确定要删除这个知识点吗？')) return;
+    try {
+        await apiDelete('/knowledge/' + id);
+        showToast('删除成功');
+        loadKnowledgePoints();
+        loadKPSelector();
+    } catch (e) {
+        showToast(e.message, 'error');
+    }
+}
+
+function loadAnalysisPage() {
+    loadStudentSelects();
+    loadExamSelects();
+    loadOverview();
+}
+
+function reloadAnalysis() {
+    const activeTab = document.querySelector('#analysis-tabs .tab.active').dataset.tab;
+    if (activeTab === 'overview') loadOverview();
+    if (activeTab === 'common') loadCommonMistakes();
+    if (activeTab === 'personal') loadPersonalTab();
+    if (activeTab === 'highfreq') loadHighFreqMistakes();
+}
+
+function updateThreshold() {
+    const val = document.getElementById('analysis-threshold').value;
+    document.getElementById('threshold-val').textContent = val + '%';
+    loadCommonMistakes();
+}
+
+async function loadOverview() {
+    const cls = document.getElementById('analysis-class').value;
+    const exam = document.getElementById('analysis-exam').value;
+    const threshold = document.getElementById('analysis-threshold').value / 100;
+
+    let url = '/analysis/class-overview?common_threshold=' + threshold;
+    if (cls) url += '&class_name=' + encodeURIComponent(cls);
+    if (exam) url += '&exam_name=' + encodeURIComponent(exam);
+
+    try {
+        const data = await apiGet(url);
+        const statsEl = document.getElementById('overview-stats');
+        statsEl.innerHTML = `
+            <div class="stat-card"><div class="num">${data.total_students}</div><div class="label">学生总数</div></div>
+            <div class="stat-card"><div class="num">${data.total_mistakes}</div><div class="label">错题总数</div></div>
+            <div class="stat-card"><div class="num">${data.unique_questions}</div><div class="label">不同题目</div></div>
+            <div class="stat-card"><div class="num">${data.common_mistake_count}</div><div class="label">共性错题</div></div>
+        `;
+
+        const typeEl = document.getElementById('overview-types');
+        const total = data.total_mistakes || 1;
+        let typeHtml = '';
+        for (const [t, c] of Object.entries(data.mistake_types)) {
+            const pct = (c / total * 100).toFixed(1);
+            typeHtml += `
+            <div class="type-bar">
+                <div class="type-label">${t}</div>
+                <div class="type-bar-wrap"><div class="type-bar-fill" style="width:${pct}%;background:${getTypeColor(t)}"></div></div>
+                <div class="type-count">${c} 题 (${pct}%)</div>
+            </div>`;
+        }
+        typeEl.innerHTML = typeHtml;
+
+        const kpRes = await apiGet(`/analysis/knowledge-point-stats${cls ? '?class_name=' + encodeURIComponent(cls) : ''}${exam ? (cls ? '&' : '?') + 'exam_name=' + encodeURIComponent(exam) : ''}`);
+        const kpTbody = document.querySelector('#overview-kp-table tbody');
+        if (kpRes.knowledge_points.length === 0) {
+            kpTbody.innerHTML = '<tr><td colspan="5" class="empty">暂无数据</td></tr>';
+        } else {
+            kpTbody.innerHTML = kpRes.knowledge_points.slice(0, 10).map((kp, i) => {
+                const typeBadges = Object.entries(kp.by_type).map(([t, c]) =>
+                    `<span class="badge" style="background:${getTypeColor(t)}">${t} ${c}</span>`
+                ).join('');
+                return `<tr><td>${i + 1}</td><td>${kp.knowledge_point_name}</td><td>${kp.mistake_count}</td><td>${kp.student_count}</td><td>${typeBadges}</td></tr>`;
+            }).join('');
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function loadCommonMistakes() {
+    const cls = document.getElementById('analysis-class').value;
+    const exam = document.getElementById('analysis-exam').value;
+    const threshold = document.getElementById('analysis-threshold').value / 100;
+
+    let url = '/analysis/common-mistakes?threshold=' + threshold;
+    if (cls) url += '&class_name=' + encodeURIComponent(cls);
+    if (exam) url += '&exam_name=' + encodeURIComponent(exam);
+
+    try {
+        const data = await apiGet(url);
+        const container = document.getElementById('common-mistakes-list');
+        if (data.common_mistakes.length === 0) {
+            container.innerHTML = '<div class="empty">暂无共性错题</div>';
+            return;
+        }
+        let html = `<p style="color:#666;font-size:12px;margin-bottom:10px;">共 ${data.common_mistakes.length} 道共性错题（阈值 ${(threshold * 100).toFixed(0)}%）</p>`;
+        data.common_mistakes.forEach((m, i) => {
+            const typeBadges = Object.entries(m.by_type).map(([t, c]) =>
+                `<span class="badge" style="background:${getTypeColor(t)}">${t} ${c}人</span>`
+            ).join('');
+            const kpHtml = m.knowledge_points.map(k => `<span class="kp-chip">${k}</span>`).join('');
+            html += `
+            <div class="mistake-card">
+                <div class="mistake-header">
+                    <span><span class="rank">#${i + 1}</span></span>
+                    <span class="wrong-count">${m.wrong_student_count}人错 (${m.wrong_ratio}%)</span>
+                </div>
+                <div class="question-text">${m.question_text}</div>
+                <div class="mistake-meta">
+                    <div class="kp-tags">${kpHtml}</div>
+                    <div>${typeBadges}</div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) { console.error(e); }
+}
+
+function loadPersonalTab() {
+    loadPersonalMistakes();
+    loadWeakStudents();
+}
+
+async function loadPersonalMistakes() {
+    const studentId = document.getElementById('personal-student').value;
+    if (!studentId) {
+        document.getElementById('personal-book').innerHTML = '<div class="empty">请选择学生</div>';
+        return;
+    }
+    try {
+        const data = await apiGet('/analysis/student-personal/' + studentId);
+        const container = document.getElementById('personal-book');
+
+        let typeHtml = Object.entries(data.by_type).map(([t, c]) =>
+            `<span class="badge" style="background:${getTypeColor(t)}">${t} ${c}</span>`
+        ).join('');
+
+        let weakHtml = '';
+        if (data.weak_points.length > 0) {
+            weakHtml = `<div class="weak-section"><h4>⚠️ 薄弱知识点（错2次以上）</h4><ul>` +
+                data.weak_points.map(w => `<li>${w.knowledge_point_name} — ${w.count}次错题</li>`).join('') +
+                `</ul></div>`;
+        }
+
+        let kpHtml = '';
+        data.by_knowledge_point.forEach(kp => {
+            const typeBadges = Object.entries(kp.by_type).map(([t, c]) =>
+                `<span class="badge small" style="background:${getTypeColor(t)}">${t} ${c}</span>`
+            ).join('');
+            const qHtml = kp.mistakes.map(q =>
+                `<li><span class="q-type" style="background:${getTypeColor(q.mistake_type)}">${q.mistake_type}</span> ${q.question_text.substring(0, 50)}${q.question_text.length > 50 ? '...' : ''} <span class="q-detail">${q.mistake_detail || ''}</span></li>`
+            ).join('');
+            kpHtml += `
+            <div class="kp-detail">
+                <div class="kp-title">
+                    <strong>${kp.knowledge_point_name}</strong>
+                    <span class="kp-count">${kp.count}题</span>
+                    ${typeBadges}
+                </div>
+                <ul class="question-list">${qHtml}</ul>
+            </div>`;
+        });
+
+        container.innerHTML = `
+        <div class="student-book">
+            <div class="student-header">
+                <h3>${data.student.name} <span style="color:#999;font-weight:normal;font-size:13px;">(${data.student.id} · ${data.student.class_name})</span></h3>
+                <div style="font-size:13px;">共 ${data.total_mistakes} 道错题 ${typeHtml}</div>
+            </div>
+            ${weakHtml}
+            <div class="kp-breakdown">${kpHtml || '<p style="color:#999;font-size:13px;">暂无知识点标签</p>'}</div>
+        </div>`;
+    } catch (e) { console.error(e); }
+}
+
+async function loadWeakStudents() {
+    const cls = document.getElementById('analysis-class').value;
+    let url = '/analysis/personal-weak-points?min_mistakes=2';
+    if (cls) url += '&class_name=' + encodeURIComponent(cls);
+
+    try {
+        const data = await apiGet(url);
+        const container = document.getElementById('weak-students-list');
+        if (data.students.length === 0) {
+            container.innerHTML = '<div class="empty">暂无薄弱学生数据</div>';
+            return;
+        }
+        let html = '';
+        data.students.forEach(s => {
+            const weakHtml = s.weak_points.map(w =>
+                `<span class="badge" style="background:#e74c3c">${w.knowledge_point_name} ${w.mistake_count}次</span>`
+            ).join(' ');
+            html += `
+            <div style="padding:10px;border:1px solid #eee;border-radius:6px;margin-bottom:8px;">
+                <div style="font-weight:bold;margin-bottom:5px;">${s.student_name} (${s.class_name})</div>
+                <div>${weakHtml}</div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) { console.error(e); }
+}
+
+async function loadHighFreqMistakes() {
+    try {
+        const data = await apiGet('/analysis/high-frequency-mistakes?min_students=2&min_exams=2');
+        const container = document.getElementById('highfreq-list');
+        if (data.high_frequency_mistakes.length === 0) {
+            container.innerHTML = '<div class="empty">暂无高频错题（需要至少2个学生、2次考试中出现）</div>';
+            return;
+        }
+        let html = `<p style="color:#666;font-size:12px;margin-bottom:10px;">共 ${data.high_frequency_mistakes.length} 道高频错题</p>`;
+        data.high_frequency_mistakes.forEach((m, i) => {
+            const typeBadges = Object.entries(m.by_type).map(([t, c]) =>
+                `<span class="badge" style="background:${getTypeColor(t)}">${t} ${c}</span>`
+            ).join('');
+            const kpHtml = m.knowledge_points.map(k => `<span class="kp-chip">${k}</span>`).join('');
+            const examHtml = m.exams.map(e => `<span class="kp-chip">${e}</span>`).join('');
+            html += `
+            <div class="mistake-card">
+                <div class="mistake-header">
+                    <span class="rank">#${i + 1}</span>
+                    <span style="font-size:12px;color:#666;">
+                        <span style="color:#e74c3c;font-weight:bold;">${m.student_count}人</span> 错 |
+                        出现在 <span style="color:#3498db;font-weight:bold;">${m.exam_count}</span> 次考试中
+                    </span>
+                </div>
+                <div class="question-text">${m.question_text}</div>
+                <div class="mistake-meta">
+                    <div class="kp-tags">${kpHtml}</div>
+                    <div>${typeBadges}</div>
+                </div>
+                <div style="margin-top:8px;font-size:12px;color:#666;">
+                    出现考试：${examHtml}
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    } catch (e) { console.error(e); }
+}
+
+function loadExportFilters() {
+    loadStudentSelects();
+    loadExamSelects();
+}
+
+function getExportParams() {
+    const cls = document.getElementById('export-class').value;
+    const exam = document.getElementById('export-exam').value;
+    const threshold = document.getElementById('export-threshold').value / 100;
+    return { cls, exam, threshold };
+}
+
+function previewReport() {
+    const { cls, exam, threshold } = getExportParams();
+    let url = '/api/export/report/preview?common_threshold=' + threshold;
+    if (cls) url += '&class_name=' + encodeURIComponent(cls);
+    if (exam) url += '&exam_name=' + encodeURIComponent(exam);
+    window.open(url, '_blank');
+}
+
+function downloadReport() {
+    const { cls, exam, threshold } = getExportParams();
+    let url = '/api/export/report.html?common_threshold=' + threshold;
+    if (cls) url += '&class_name=' + encodeURIComponent(cls);
+    if (exam) url += '&exam_name=' + encodeURIComponent(exam);
+    window.location.href = url;
+}
+
+async function init() {
+    await loadStudentSelects();
+    await loadKPSelector();
+    await loadRecentMistakes();
+    await loadExamSelects();
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,94 @@
+[
+  {
+    "id": "e8577ac1-50cb-4f20-a0da-8504f854ad91",
+    "student_id": "2024001",
+    "question_text": "一个质量为2kg的物体，受到10N的合力作用，求加速度。",
+    "question_fingerprint": "97712d23a0ddfcf65e7837bc84821150",
+    "mistake_type": "计算错误",
+    "mistake_detail": "乘法算错了",
+    "knowledge_point_ids": [
+      "2bee488d"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.576913"
+  },
+  {
+    "id": "08200e78-f71c-49e6-b1e7-a637fa95e4e3",
+    "student_id": "2024001",
+    "question_text": "汽车以20m/s的速度行驶，刹车后5秒停下，求加速度大小。",
+    "question_fingerprint": "9c1a580b98f2ea1f961296a93ad561ff",
+    "mistake_type": "概念不清",
+    "mistake_detail": "混淆了加速度和速度",
+    "knowledge_point_ids": [
+      "4b0f93af"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.605992"
+  },
+  {
+    "id": "8d852120-5d36-415e-9d71-b6f0b566095e",
+    "student_id": "2024002",
+    "question_text": "一个质量为2kg的物体，受到10N的合力作用，求加速度。",
+    "question_fingerprint": "97712d23a0ddfcf65e7837bc84821150",
+    "mistake_type": "概念不清",
+    "mistake_detail": "公式记错了",
+    "knowledge_point_ids": [
+      "2bee488d"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.635297"
+  },
+  {
+    "id": "46228f2b-1a76-4b23-8ae0-3b12af5d18be",
+    "student_id": "2024002",
+    "question_text": "物体速度越大，加速度也越大，对吗？请说明理由。",
+    "question_fingerprint": "61fab13d047a6921e3259551c9a0ecd9",
+    "mistake_type": "概念不清",
+    "mistake_detail": "混淆了加速度和速度概念",
+    "knowledge_point_ids": [
+      "4b0f93af"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.663442"
+  },
+  {
+    "id": "52118a7a-9167-40bc-9dc5-1f5598ce872c",
+    "student_id": "2024003",
+    "question_text": "一个质量为2kg的物体，受到10N的合力作用，求加速度。",
+    "question_fingerprint": "97712d23a0ddfcf65e7837bc84821150",
+    "mistake_type": "审题错误",
+    "mistake_detail": "没看到质量单位是kg",
+    "knowledge_point_ids": [
+      "2bee488d",
+      "0112b276"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.701285"
+  },
+  {
+    "id": "31ca7e05-3b04-4a8e-94cb-f75437788bff",
+    "student_id": "2024003",
+    "question_text": "汽车以20m/s的速度行驶，刹车后5秒停下，求加速度大小。",
+    "question_fingerprint": "9c1a580b98f2ea1f961296a93ad561ff",
+    "mistake_type": "不会做",
+    "mistake_detail": "",
+    "knowledge_point_ids": [
+      "4b0f93af"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.730294"
+  },
+  {
+    "id": "5648b7b0-c8f2-4f56-b144-49df45870595",
+    "student_id": "2024004",
+    "question_text": "一个质量为2kg的物体，受到10N的合力作用，求加速度。",
+    "question_fingerprint": "97712d23a0ddfcf65e7837bc84821150",
+    "mistake_type": "计算错误",
+    "mistake_detail": "",
+    "knowledge_point_ids": [
+      "2bee488d"
+    ],
+    "exam_name": "期中考试",
+    "created_at": "2026-06-06T19:49:57.807063"
+  }
+]
