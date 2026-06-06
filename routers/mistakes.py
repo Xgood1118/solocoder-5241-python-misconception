@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
 from models import (
     MistakeRecord, MistakeRecordCreate, Student, KnowledgePoint,
@@ -48,8 +48,8 @@ def get_mistake(mistake_id: str):
     return mistake
 
 
-@router.post("", response_model=MistakeRecord)
-def create_mistake(mistake_data: MistakeRecordCreate):
+@router.post("")
+def create_mistake(mistake_data: MistakeRecordCreate) -> Dict[str, Any]:
     student = storage.get_by_id("students", Student, mistake_data.student_id)
     if not student:
         raise HTTPException(status_code=400, detail="学生不存在")
@@ -69,9 +69,16 @@ def create_mistake(mistake_data: MistakeRecordCreate):
                     detail="该学生此题已录入过（相同考试），请勿重复录入"
                 )
 
-    has_knowledge = len(mistake_data.knowledge_point_ids) > 0
-    if not has_knowledge:
-        pass
+    warnings = []
+    if len(mistake_data.knowledge_point_ids) == 0:
+        warnings.append(
+            "该题未关联任何知识点标签，建议补充后再保存，否则后续按知识点维度的统计会遗漏这道题"
+        )
+
+    if not mistake_data.exam_name:
+        warnings.append(
+            "未填写考试名称，后续无法按考试维度筛选统计"
+        )
 
     mistake_id = str(uuid.uuid4())
     mistake = MistakeRecord(
@@ -80,11 +87,15 @@ def create_mistake(mistake_data: MistakeRecordCreate):
         **mistake_data.model_dump()
     )
     storage.add("mistakes", mistake)
-    return mistake
+
+    return {
+        "record": mistake.model_dump(),
+        "warnings": warnings,
+    }
 
 
-@router.put("/{mistake_id}", response_model=MistakeRecord)
-def update_mistake(mistake_id: str, mistake_data: MistakeRecordCreate):
+@router.put("/{mistake_id}")
+def update_mistake(mistake_id: str, mistake_data: MistakeRecordCreate) -> Dict[str, Any]:
     existing = storage.get_by_id("mistakes", MistakeRecord, mistake_id)
     if not existing:
         raise HTTPException(status_code=404, detail="错题记录不存在")
@@ -98,7 +109,23 @@ def update_mistake(mistake_id: str, mistake_data: MistakeRecordCreate):
     update_dict["question_fingerprint"] = fingerprint
     storage.update("mistakes", mistake_id, update_dict)
 
-    return storage.get_by_id("mistakes", MistakeRecord, mistake_id)
+    updated = storage.get_by_id("mistakes", MistakeRecord, mistake_id)
+
+    warnings = []
+    if len(mistake_data.knowledge_point_ids) == 0:
+        warnings.append(
+            "该题未关联任何知识点标签，建议补充后再保存，否则后续按知识点维度的统计会遗漏这道题"
+        )
+
+    if not mistake_data.exam_name:
+        warnings.append(
+            "未填写考试名称，后续无法按考试维度筛选统计"
+        )
+
+    return {
+        "record": updated.model_dump(),
+        "warnings": warnings,
+    }
 
 
 @router.delete("/{mistake_id}")

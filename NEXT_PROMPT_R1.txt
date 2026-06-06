@@ -1,7 +1,1 @@
-录错题这边整体跑通了，学生/重名/4 大错因/多知识点/题目指纹去空格/共性个人/HTML 报告导出都 OK，curl 实测过。但 PROMPT 里讲过「录入时如果一道题没挂知识点，要提示老师补一下别让分析的时候少数据」，翻 routers/mistakes.py 第 72-74 行那段：
-
-    has_knowledge = len(mistake_data.knowledge_point_ids) > 0
-    if not has_knowledge:
-        pass
-
-这个 if 写完是 pass，等于没做。我 POST 一道 knowledge_point_ids=[] 的错题，状态码 200，后端不返回任何 warning 字段，老师那边也收不到提醒，分析的时候这条错题就是「孤儿数据」。前端如果没拿到 warning，可能就一路录下去，最后统计 top_knowledge_points 和 personal-weak-points 都漏算了。检查修复一下。
+需求里讲的「录入时如果一道题没挂知识点，要提示老师补一下，别让分析的时候少数据」功能好像没做。我 POST 一道 knowledge_point_ids=[] 的错题，状态码 200，后端不返回任何 warning 字段，老师那边也收不到提醒，分析的时候这条错题就是「孤儿数据」。前端如果没拿到 warning，可能就一路录下去，最后统计 top_knowledge_points 和 personal-weak-points 都漏算了。检查修复一下。

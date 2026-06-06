@@ -260,6 +260,7 @@ tr:hover { background: #f8f9fc; }
 
         <div class="tab-content active" id="tab-overview">
             <div class="stats-grid" id="overview-stats"></div>
+            <div id="overview-alert" style="margin:15px 0;"></div>
             <h3 style="font-size:15px;margin:15px 0 10px;">错因分布</h3>
             <div id="overview-types"></div>
             <h3 style="font-size:15px;margin:20px 0 10px;">Top 知识点</h3>
@@ -559,14 +560,19 @@ async function submitMistake() {
     };
 
     try {
-        await apiPost('/mistakes', data);
+        const result = await apiPost('/mistakes', data);
         showToast('录入成功！');
 
-        if (selectedKPs.length === 0) {
-            document.getElementById('input-alert').innerHTML =
-                '<div class="alert alert-warning">⚠️ 这道题还没有挂知识点标签，建议补充一下，否则分析数据会不完整哦</div>';
+        const alertEl = document.getElementById('input-alert');
+        if (result.warnings && result.warnings.length > 0) {
+            let html = '<div class="alert alert-warning">';
+            result.warnings.forEach((w, i) => {
+                html += `<div>⚠️ ${w}</div>`;
+            });
+            html += '</div>';
+            alertEl.innerHTML = html;
         } else {
-            document.getElementById('input-alert').innerHTML = '';
+            alertEl.innerHTML = '';
         }
 
         document.getElementById('input-question').value = '';
@@ -860,6 +866,18 @@ async function loadOverview() {
             <div class="stat-card"><div class="num">${data.common_mistake_count}</div><div class="label">共性错题</div></div>
         `;
 
+        const overviewAlertEl = document.getElementById('overview-alert');
+        if (data.unlabeled_count > 0) {
+            const pct = (data.unlabeled_count / data.total_mistakes * 100).toFixed(1);
+            overviewAlertEl.innerHTML = `
+                <div class="alert alert-warning">
+                    ⚠️ 当前有 <strong>${data.unlabeled_count}</strong> 道错题未标注知识点（占 ${pct}%），
+                    这些题不会出现在知识点维度的统计中，建议尽快补全标签。
+                </div>`;
+        } else {
+            overviewAlertEl.innerHTML = '';
+        }
+
         const typeEl = document.getElementById('overview-types');
         const total = data.total_mistakes || 1;
         let typeHtml = '';
@@ -883,7 +901,9 @@ async function loadOverview() {
                 const typeBadges = Object.entries(kp.by_type).map(([t, c]) =>
                     `<span class="badge" style="background:${getTypeColor(t)}">${t} ${c}</span>`
                 ).join('');
-                return `<tr><td>${i + 1}</td><td>${kp.knowledge_point_name}</td><td>${kp.mistake_count}</td><td>${kp.student_count}</td><td>${typeBadges}</td></tr>`;
+                const nameClass = kp.is_unlabeled ? 'style="color:#e74c3c;font-weight:bold;"' : '';
+                const rankText = kp.is_unlabeled ? '⚠️ 未标注' : (i + 1);
+                return `<tr style="${kp.is_unlabeled ? 'background:#fff5f5;' : ''}"><td>${rankText}</td><td ${nameClass}>${kp.knowledge_point_name}</td><td>${kp.mistake_count}</td><td>${kp.student_count}</td><td>${typeBadges}</td></tr>`;
             }).join('');
         }
     } catch (e) { console.error(e); }
@@ -954,6 +974,15 @@ async function loadPersonalMistakes() {
                 `</ul></div>`;
         }
 
+        let unlabeledHtml = '';
+        if (data.unlabeled_count > 0) {
+            unlabeledHtml = `
+                <div class="alert alert-warning" style="margin-bottom:15px;">
+                    ⚠️ 该生有 <strong>${data.unlabeled_count}</strong> 道错题未标注知识点，
+                    无法参与知识点维度的统计分析，建议尽快补全。
+                </div>`;
+        }
+
         let kpHtml = '';
         data.by_knowledge_point.forEach(kp => {
             const typeBadges = Object.entries(kp.by_type).map(([t, c]) =>
@@ -962,10 +991,12 @@ async function loadPersonalMistakes() {
             const qHtml = kp.mistakes.map(q =>
                 `<li><span class="q-type" style="background:${getTypeColor(q.mistake_type)}">${q.mistake_type}</span> ${q.question_text.substring(0, 50)}${q.question_text.length > 50 ? '...' : ''} <span class="q-detail">${q.mistake_detail || ''}</span></li>`
             ).join('');
+            const titleClass = kp.is_unlabeled ? 'style="color:#e74c3c;"' : '';
+            const kpBg = kp.is_unlabeled ? 'style="background:#fff5f5;border:1px solid #fadbd8;"' : '';
             kpHtml += `
-            <div class="kp-detail">
-                <div class="kp-title">
-                    <strong>${kp.knowledge_point_name}</strong>
+            <div class="kp-detail" ${kpBg}>
+                <div class="kp-title" ${titleClass}>
+                    <strong>${kp.is_unlabeled ? '⚠️ ' : ''}${kp.knowledge_point_name}</strong>
                     <span class="kp-count">${kp.count}题</span>
                     ${typeBadges}
                 </div>
@@ -980,6 +1011,7 @@ async function loadPersonalMistakes() {
                 <div style="font-size:13px;">共 ${data.total_mistakes} 道错题 ${typeHtml}</div>
             </div>
             ${weakHtml}
+            ${unlabeledHtml}
             <div class="kp-breakdown">${kpHtml || '<p style="color:#999;font-size:13px;">暂无知识点标签</p>'}</div>
         </div>`;
     } catch (e) { console.error(e); }

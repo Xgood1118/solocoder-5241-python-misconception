@@ -72,12 +72,20 @@ def knowledge_point_stats(
     kp_mistake_count = defaultdict(int)
     kp_mistake_types = defaultdict(lambda: defaultdict(int))
     kp_students = defaultdict(set)
+    unlabeled_count = 0
+    unlabeled_types = defaultdict(int)
+    unlabeled_students = set()
 
     for m in mistakes:
-        for kp_id in m.knowledge_point_ids:
-            kp_mistake_count[kp_id] += 1
-            kp_mistake_types[kp_id][m.mistake_type] += 1
-            kp_students[kp_id].add(m.student_id)
+        if len(m.knowledge_point_ids) == 0:
+            unlabeled_count += 1
+            unlabeled_types[m.mistake_type] += 1
+            unlabeled_students.add(m.student_id)
+        else:
+            for kp_id in m.knowledge_point_ids:
+                kp_mistake_count[kp_id] += 1
+                kp_mistake_types[kp_id][m.mistake_type] += 1
+                kp_students[kp_id].add(m.student_id)
 
     result = []
     for kp_id, count in sorted(kp_mistake_count.items(), key=lambda x: -x[1]):
@@ -90,9 +98,20 @@ def knowledge_point_stats(
             "mistake_count": count,
             "student_count": len(kp_students[kp_id]),
             "by_type": dict(kp_mistake_types[kp_id]),
+            "is_unlabeled": False,
         })
 
-    return {"knowledge_points": result}
+    if unlabeled_count > 0:
+        result.append({
+            "knowledge_point_id": "__unlabeled__",
+            "knowledge_point_name": "未标注知识点",
+            "mistake_count": unlabeled_count,
+            "student_count": len(unlabeled_students),
+            "by_type": dict(unlabeled_types),
+            "is_unlabeled": True,
+        })
+
+    return {"knowledge_points": result, "total_mistakes": len(mistakes), "unlabeled_count": unlabeled_count}
 
 
 @router.get("/common-mistakes")
@@ -163,13 +182,12 @@ def student_personal_mistakes(student_id: str):
 
     kp_stats = defaultdict(lambda: {"count": 0, "by_type": defaultdict(int), "mistakes": []})
     type_stats = defaultdict(int)
+    unlabeled_mistakes = []
 
     for m in mistakes:
         type_stats[m.mistake_type] += 1
-        for kp_id in m.knowledge_point_ids:
-            kp_stats[kp_id]["count"] += 1
-            kp_stats[kp_id]["by_type"][m.mistake_type] += 1
-            kp_stats[kp_id]["mistakes"].append({
+        if len(m.knowledge_point_ids) == 0:
+            unlabeled_mistakes.append({
                 "id": m.id,
                 "question_text": m.question_text,
                 "mistake_type": m.mistake_type,
@@ -177,6 +195,18 @@ def student_personal_mistakes(student_id: str):
                 "exam_name": m.exam_name,
                 "created_at": m.created_at,
             })
+        else:
+            for kp_id in m.knowledge_point_ids:
+                kp_stats[kp_id]["count"] += 1
+                kp_stats[kp_id]["by_type"][m.mistake_type] += 1
+                kp_stats[kp_id]["mistakes"].append({
+                    "id": m.id,
+                    "question_text": m.question_text,
+                    "mistake_type": m.mistake_type,
+                    "mistake_detail": m.mistake_detail,
+                    "exam_name": m.exam_name,
+                    "created_at": m.created_at,
+                })
 
     kps = storage.get_all("knowledge_points", KnowledgePoint)
     kp_map = {kp.id: kp for kp in kps}
@@ -188,15 +218,30 @@ def student_personal_mistakes(student_id: str):
         data["knowledge_point_id"] = kp_id
         data["knowledge_point_name"] = kp_name
         data["by_type"] = dict(data["by_type"])
+        data["is_unlabeled"] = False
         kp_result.append(data)
 
     kp_result.sort(key=lambda x: -x["count"])
 
-    weak_points = [kp for kp in kp_result if kp["count"] >= 2]
+    if unlabeled_mistakes:
+        unlabeled_types = defaultdict(int)
+        for m in unlabeled_mistakes:
+            unlabeled_types[m["mistake_type"]] += 1
+        kp_result.append({
+            "knowledge_point_id": "__unlabeled__",
+            "knowledge_point_name": "未分类（未挂知识点）",
+            "count": len(unlabeled_mistakes),
+            "by_type": dict(unlabeled_types),
+            "mistakes": unlabeled_mistakes,
+            "is_unlabeled": True,
+        })
+
+    weak_points = [kp for kp in kp_result if kp["count"] >= 2 and not kp.get("is_unlabeled")]
 
     return {
         "student": student,
         "total_mistakes": len(mistakes),
+        "unlabeled_count": len(unlabeled_mistakes),
         "by_type": dict(type_stats),
         "by_knowledge_point": kp_result,
         "weak_points": weak_points,
